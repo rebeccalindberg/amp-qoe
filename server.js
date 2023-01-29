@@ -11,7 +11,6 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 app.post("/telemetry", async (req, res) => {
-    console.log(req.body);
     let checkBitrateRes = qoeHandler.checkBitrate(req.body.bitrateSwitchedTo, req.body.width, req.body.height);
     let checkBitrateSwitchesRes = qoeHandler.checkBitrateSwitches(req.body.bitrateSwitchedTo);
     let checkBufferRes = qoeHandler.checkBufferWarnings(req.body.bufferTime)

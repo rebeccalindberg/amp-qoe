@@ -100,4 +100,4 @@ module.exports = {
     checkBitrate: checkBitrate,
     checkBitrateSwitches: checkBitrateSwitches,
     checkBufferWarnings: checkBufferWarnings
-  };
+};
