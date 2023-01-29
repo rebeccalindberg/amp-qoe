@@ -1,11 +1,6 @@
 function checkBitrate(bitrate, width) {
     if (bitrate != 0 && width != 0) {
-        console.log("Minimum bps: ", calculateMinimumBitrate(width));
-        console.log("Current bps: ", bitrate);
-        console.log(width);
         if (bitrate < calculateMinimumBitrate(width)) {
-            console.log("bitrate: ", bitrate);
-            console.log(width);
             return "The bitrate is too low for the given frame size. Consider increasing the bitrate or reducing the frame size.";
         } else {
             return "OK";
@@ -61,15 +56,16 @@ function checkBitrateSwitches(currentBitrate) {
 
 let buffers = 0;
 let longBufferTimestamps = [];
-//let longBufferTimestamps = [new Date("2023-01-29T14:27:09.182Z"), new Date("2023-01-29T14:27:22.216Z"), new Date("2023-01-29T14:27:30.216Z")];
+//let longBufferTimestamps = [ 1675025953602.4, 1675025967682.6, 1675025977738];
 function checkBufferWarnings(bufferEventTimes) {
     let warning = "";
 
     if (buffers != bufferEventTimes.length) {  
-
+        console.log("New bufferevent detected ", bufferEventTimes[bufferEventTimes.length-1]);
         if (bufferEventTimes[bufferEventTimes.length-1] > 500) {
             console.log("500 ms buffer event detected, add to array: ", bufferEventTimes[bufferEventTimes.length-1]);
-            longBufferTimestamps.push(new Date());
+            console.log("Saving time when buffer was initiated", new Date() - bufferEventTimes[bufferEventTimes.length-1]);
+            longBufferTimestamps.push(new Date() - bufferEventTimes[bufferEventTimes.length-1]); // Save when the buffer started
         }
         buffers = bufferEventTimes.length;
     }
@@ -83,7 +79,7 @@ function checkBufferWarnings(bufferEventTimes) {
 
     // Check if three or more timestamps are within 30 seconds of each other
     for (let i = 0; i < longBufferTimestamps.length - 2; i++) {
-        if (longBufferTimestamps[i + 2] - longBufferTimestamps[i] <= 30000) {
+        if (longBufferTimestamps[i + 2] - longBufferTimestamps[i] <= 300000) {
             warning += "Three or more buffer events longer than 500 ms within 30 seconds detected! ";
             break;
         }
