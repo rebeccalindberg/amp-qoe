@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link href="https://amp.azure.net/libs/amp/latest/skins/amp-default/azuremediaplayer.min.css" rel="stylesheet">
+    <script src="https://amp.azure.net/libs/amp/latest/azuremediaplayer.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dashjs/4.5.2/dash.all.min.js"></script>
+    <script>
+        class telemetryObject {
+            constructor() {
+                this.width = 0;
+                this.height = 0;
+                this.bitrates = [];
+                this.bitrateSwitchedTo = 0;
+                this.bufferingCount = 0;
+                this.bufferTime = [];
+        }}
+
+        const handler = {
+            set: (obj, prop, value) => {
+                // send the updated telemetryData to the server using an HTTP request
+                obj[prop] = value;
+                
+                sendTelemetryData(obj);
+                return true;
+            }
+        };
+
+        function sendTelemetryData(data) {
+            // send the data to the server using an HTTP request
+            console.log("sending data to http service", data);
+
+            fetch('http://localhost:3000/telemetry', {
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                method: 'POST',
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(jsonData => {
+                document.getElementById("bitrate").innerHTML = `<b>HIGHEST_BITRATE_POSSIBLE:</b> ${jsonData.HIGHEST_BITRATE_POSSIBLE}`;
+                document.getElementById("bitrateswitches").innerHTML = `<b>TOO_MANY_BITRATE_SWITCHES:</b> ${jsonData.TOO_MANY_BITRATE_SWITCHES}`;
+                document.getElementById("buffer").innerHTML = `<b>TOO_MANY_BUFFERING:</b> ${jsonData.TOO_MANY_BUFFERING}`;
+            })
+            .catch(error => console.error(error));
+        }
+
+        (function () {
+            amp.plugin('telemetry', function (options) {
+
+                let player = this
+                let bitrates;
+                let bitrateSwitchedTo;
+                let bufferingCount = 0;
+
+                let bufferStartTime;
+                let bufferEndTime;
+                let bufferTime = [];
+                let isBufferStarted = false;
+
+                // Create new instance of telemetry object
+                const telemetryData = new telemetryObject();
+                const proxyTelemetryData = new Proxy(telemetryData, handler);
+
+
+                const init = function () {
+
+                    player.on('waiting', function() {
+                        bufferStartTime = performance.now();
+                        isBufferStarted = true;
+                        // Kanske skicka buffer event redan här?
+                    });
+
+                    player.on('playing', function() {
+                        
+                        proxyTelemetryData.width = player.techGet_('videoWidth');
+                        proxyTelemetryData.height = player.techGet_('videoHeight');
+
+                        if(isBufferStarted){
+                            // calculate time between start of buffer to end of buffer
+                            bufferEndTime = performance.now();
+                            bufferTime.push((bufferEndTime-bufferStartTime));
+                            proxyTelemetryData.bufferTime = bufferTime;
+                        }
+                    });
+
+                    player.on('loadedmetadata', function() {
+                        const currentSource = player.currentSrc();
+                        fetch(currentSource)
+                        .then(response => response.text())
+                        .then(str => (new window.DOMParser()).parseFromString(str, "text/xml"))
+                        .then(data => {
+                        bitrates = Array.from(data.getElementsByTagName('Representation'))
+                            .map(representation => representation.getAttribute('bandwidth'));
+                            proxyTelemetryData.bitrates = bitrates;
+                        });
+                    });
+
+                    player.on('playbackbitratechanged', function() {
+                        bitrateSwitchedTo = player.currentPlaybackBitrate();
+                        proxyTelemetryData.bitrateSwitchedTo = bitrateSwitchedTo;
+                    });
+
+                    player.on("progress", function() {
+                        bufferCount = player.buffered().length;
+                        if (proxyTelemetryData.bufferingCount != bufferCount) {
+                            proxyTelemetryData.bufferingCount = bufferCount;
+                        }
+                    });
+                }
+                // initialize the plugin
+                init();
+
+            });
+        }).call(this);
+
+    </script>
+</head>
+<body>
+
+    <video id="vid1" class="azuremediaplayer amp-default-skin" width="640" height="400">
+        <p class="amp-no-js">
+            To view this video please enable JavaScript, and consider upgrading to a web browser that supports HTML5 video
+        </p>
+    </video>
+    <script>
+        var myPlayer = amp('vid1', {
+                    /* Options */
+                    "nativeControlsForTouch": false,
+                    autoplay: true,
+                    controls: true,
+                    width: "640",
+                    height: "400",
+                    techOrder: ['AzureHtml5JS'],
+                    plugins: {
+                        /* load our telemetry plugin */
+                        telemetry: {
+                            /* Options */
+                        }
+                    }
+                }, function () {
+                    console.log('Good to go!');
+                }
+        );
+
+        myPlayer.src([{
+            src: "https://amssamples.streaming.mediaservices.windows.net/91492735-c523-432b-ba01-faba6c2206a2/AzureMediaServicesPromo.ism/manifest(format=mpd-time-csf)",
+            type: "application/dash+xml"
+        }]);
+    </script>
+    <div>
+        <p id="bitrate"></p>
+        <p id="bitrateswitches"></p>
+        <p id="buffer"></p>
+    </div>
+</body>
+</html>
