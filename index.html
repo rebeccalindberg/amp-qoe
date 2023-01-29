@@ -29,7 +29,7 @@
 
         function sendTelemetryData(data) {
             // send the data to the server using an HTTP request
-            console.log("sending data to http service", data);
+            //console.log("sending data to http service", data);
 
             fetch('http://localhost:3000/telemetry', {
                 headers: {
@@ -64,13 +64,10 @@
                 const telemetryData = new telemetryObject();
                 const proxyTelemetryData = new Proxy(telemetryData, handler);
 
-
                 const init = function () {
-
                     player.on('waiting', function() {
-                        bufferStartTime = performance.now();
+                        bufferStartTime = new Date();
                         isBufferStarted = true;
-                        // Kanske skicka buffer event redan här?
                     });
 
                     player.on('playing', function() {
@@ -80,7 +77,7 @@
 
                         if(isBufferStarted){
                             // calculate time between start of buffer to end of buffer
-                            bufferEndTime = performance.now();
+                            bufferEndTime = new Date();
                             bufferTime.push((bufferEndTime-bufferStartTime));
                             proxyTelemetryData.bufferTime = bufferTime;
                         }
