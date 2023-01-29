@@ -56,15 +56,15 @@ function checkBitrateSwitches(currentBitrate) {
 
 let buffers = 0;
 let longBufferTimestamps = [];
+// Mock data:
 //let longBufferTimestamps = [ 1675025953602.4, 1675025967682.6, 1675025977738];
 function checkBufferWarnings(bufferEventTimes) {
     let warning = "";
 
     if (buffers != bufferEventTimes.length) {  
-        console.log("New bufferevent detected ", bufferEventTimes[bufferEventTimes.length-1]);
         if (bufferEventTimes[bufferEventTimes.length-1] > 500) {
-            console.log("500 ms buffer event detected, add to array: ", bufferEventTimes[bufferEventTimes.length-1]);
-            console.log("Saving time when buffer was initiated", new Date() - bufferEventTimes[bufferEventTimes.length-1]);
+            //console.log("500 ms buffer event detected, add to array: ", bufferEventTimes[bufferEventTimes.length-1]);
+            console.log("500 ms buffer event detected. Saving time when buffer was initiated ", new Date() - bufferEventTimes[bufferEventTimes.length-1]);
             longBufferTimestamps.push(new Date() - bufferEventTimes[bufferEventTimes.length-1]); // Save when the buffer started
         }
         buffers = bufferEventTimes.length;
@@ -79,7 +79,7 @@ function checkBufferWarnings(bufferEventTimes) {
 
     // Check if three or more timestamps are within 30 seconds of each other
     for (let i = 0; i < longBufferTimestamps.length - 2; i++) {
-        if (longBufferTimestamps[i + 2] - longBufferTimestamps[i] <= 300000) {
+        if (longBufferTimestamps[i + 2] - longBufferTimestamps[i] <= 30000) {
             warning += "Three or more buffer events longer than 500 ms within 30 seconds detected! ";
             break;
         }
@@ -92,8 +92,18 @@ function checkBufferWarnings(bufferEventTimes) {
     }
 }
 
+function clearData() {
+    buffers = 0;
+    longBufferTimestamps = [];
+    bitrateSwitches = 0;
+    lastBitrate = undefined;
+    lastSwitchTime = undefined;
+    warning = false;
+}
+
 module.exports = {
     checkBitrate: checkBitrate,
     checkBitrateSwitches: checkBitrateSwitches,
-    checkBufferWarnings: checkBufferWarnings
+    checkBufferWarnings: checkBufferWarnings,
+    clearData: clearData
 };

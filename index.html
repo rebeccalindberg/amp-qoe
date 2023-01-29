@@ -48,6 +48,11 @@
         }
 
         (function () {
+            fetch('http://localhost:3000/telemetry/cleardata')
+            .then(response => response.json())
+            .then(data => console.log(data))
+            .catch(error => console.error(error));
+
             amp.plugin('telemetry', function (options) {
 
                 let player = this
