@@ -19,7 +19,6 @@
 
         const handler = {
             set: (obj, prop, value) => {
-                // send the updated telemetryData to the server using an HTTP request
                 obj[prop] = value;
                 
                 sendTelemetryData(obj);
